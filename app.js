@@ -40,9 +40,11 @@ instSub.textContent = CONFIG.subtitulo;
 function jsonp(url) {
   return new Promise((resolve, reject) => {
     const cb = 'cb_' + Math.random().toString(36).slice(2);
-    window[cb] = (data) => { delete window[cb]; s.remove(); resolve(data); };
     const s = document.createElement('script');
-    s.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + cb;
+    window[cb] = (data) => { try { resolve(data); } finally { delete window[cb]; s.remove(); } };
+    // cache-buster para evitar respuestas cacheadas en móvil/PWA
+    const sep = url.includes('?') ? '&' : '?';
+    s.src = `${url}${sep}callback=${cb}&t=${Date.now()}`;
     s.onerror = () => { delete window[cb]; s.remove(); reject(new Error('JSONP error')); };
     document.body.appendChild(s);
   });
@@ -56,7 +58,7 @@ function apiLookup(legajo, dni) {
   return jsonp(url);
 }
 
-async function apiRegister(data) {
+function apiRegister(data) {
   const q = new URLSearchParams({ fn:'register', ...data }).toString();
   const url = `${CONFIG.padronUrl}?${q}`;
   return jsonp(url);
@@ -64,6 +66,7 @@ async function apiRegister(data) {
 
 function apiCert(tipo, legajo, dni) {
   const url = `${CONFIG.padronUrl}?fn=cert&tipo=${encodeURIComponent(tipo)}&legajo=${encodeURIComponent(legajo)}&dni=${encodeURIComponent(dni)}`;
+  // abrir en nueva pestaña en respuesta a click evita bloqueos de popup en móvil
   window.open(url, '_blank');
 }
 
@@ -99,6 +102,35 @@ function showCredential(user) {
 function showAuth() {
   credSection.classList.add('hidden');
   authSection.classList.remove('hidden');
+  if (form) form.reset(); // deja el formulario limpio
+}
+
+/* =======================
+   Logout profundo (para cambiar de alumno)
+======================= */
+async function deepLogout() {
+  try {
+    // 1) Estado local
+    localStorage.removeItem(STATE_KEY);
+    sessionStorage.clear();
+
+    // 2) Cache Storage (PWA)
+    if ('caches' in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k)));
+    }
+
+    // 3) Service Worker (opcional)
+    if ('serviceWorker' in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r => r.unregister()));
+    }
+  } catch (e) {
+    console.warn('deepLogout warn:', e);
+  } finally {
+    // 4) Recargar en limpio (cache-buster)
+    location.replace(location.pathname + '?t=' + Date.now());
+  }
 }
 
 /* =======================
@@ -109,10 +141,10 @@ form.addEventListener('submit', async (e) => {
   msg.textContent = 'Consultando...';
 
   const data = Object.fromEntries(new FormData(form).entries());
-  const legajo = (data.legajo || '').trim();
-  const dni     = (data.dni || '').trim();
-  const nombre  = (data.nombre || '').trim();
-  const apellido= (data.apellido || '').trim();
+  const legajo  = (data.legajo  || '').trim();
+  const dni     = (data.dni     || '').trim();
+  const nombre  = (data.nombre  || '').trim();
+  const apellido= (data.apellido|| '').trim();
 
   if (!legajo || !dni || !nombre || !apellido) {
     msg.textContent = 'Completá todos los campos.';
@@ -142,7 +174,10 @@ form.addEventListener('submit', async (e) => {
   showCredential(user);
 });
 
-logoutBtn.addEventListener('click', () => { clearState(); showAuth(); });
+logoutBtn.addEventListener('click', async () => {
+  showAuth();
+  await deepLogout(); // garantiza cambio de alumno sin borrar caché manual
+});
 
 downloadBtn.addEventListener('click', () => { window.print(); });
 
