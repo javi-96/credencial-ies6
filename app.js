@@ -30,22 +30,34 @@ const instSub = $('#instSub');
 const CONFIG = {
   institucion: 'IES N°6 - Perico (Oficial)',
   subtitulo: 'Credencial Digital',
-  padronUrl: 'assets/students.json' // Cambiar a un endpoint cuando haya backend
+  padronUrl: 'https://script.google.com/macros/s/AKfycbxiyr6_gL-GQbJFUgRKSdqT2BDPh3RUX0kXfWdzrQ9v8VdROMG1zWCI-GqGm8sxbcNj/exec' // <-- URL de tu Web App de Apps Script
 };
 
 instName.textContent = CONFIG.institucion;
 instSub.textContent = CONFIG.subtitulo;
 
 async function loadPadron() {
-  try {
-    const res = await fetch(CONFIG.padronUrl, { cache: 'no-store' });
-    if (!res.ok) throw new Error('No se pudo cargar el padrón');
-    return await res.json();
-  } catch (e) {
-    console.error(e);
-    msg.textContent = 'Error cargando padrón local. Contactá a Secretaría.';
-    return [];
-  }
+  async function apiLookup(legajo, dni) {
+  const url = `${CONFIG.padronUrl}?fn=lookup&legajo=${encodeURIComponent(legajo)}&dni=${encodeURIComponent(dni)}`;
+  const r = await fetch(url, { cache:'no-store' });
+  return r.json();
+}
+
+async function apiRegister(data) {
+  const r = await fetch(CONFIG.padronUrl, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ fn:'register', ...data })
+  });
+  return r.json();
+}
+
+async function apiCert(tipo, legajo, dni) {
+  // Abre en nueva pestaña (el script devuelve link al PDF)
+  const url = `${CONFIG.padronUrl}?fn=cert&tipo=${tipo}&legajo=${encodeURIComponent(legajo)}&dni=${encodeURIComponent(dni)}`;
+  window.open(url, '_blank');
+}
+
 }
 
 function saveState(user) {
@@ -84,45 +96,42 @@ function showAuth() {
 
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
-  msg.textContent = 'Buscando en padrón...';
+  msg.textContent = 'Consultando...';
+
   const data = Object.fromEntries(new FormData(form).entries());
-  const legajo = (data.legajo || '').trim();
-  const dni = (data.dni || '').trim();
-  const nombre = (data.nombre || '').trim();
-  const apellido = (data.apellido || '').trim();
+  const legajo = data.legajo.trim();
+  const dni = data.dni.trim();
+  const nombre = data.nombre.trim();
+  const apellido = data.apellido.trim();
 
-  if (!legajo || !dni || !nombre || !apellido) {
-    msg.textContent = 'Completá todos los campos.';
-    return;
-  }
-  const padron = await loadPadron();
-  const match = padron.find(s =>
-    (s.legajo + '').toLowerCase() === legajo.toLowerCase() &&
-    (s.dni + '') === dni
-  );
+  // 1) Intentar encontrar en padrón (lookup)
+  let resp = await apiLookup(legajo, dni);
 
-  if (!match) {
-    msg.textContent = 'No se encontró tu registro en el padrón. Verificá legajo/DNI en Secretaría.';
-    return;
+  if (!resp.ok) {
+    // 2) Si no está, registrar solicitud
+    resp = await apiRegister({ legajo, dni, nombre, apellido });
   }
 
-  // Validación opcional: nombre/apellido deben coincidir (puede permitir variaciones)
-  const okName = (match.nombre || '').trim().toLowerCase() === nombre.toLowerCase()
-              && (match.apellido || '').trim().toLowerCase() === apellido.toLowerCase();
-  if (!okName) {
-    msg.textContent = 'El nombre/apellido no coincide con el padrón. Revisá los datos o consultá en Secretaría.';
+  if (!resp.ok) {
+    msg.textContent = resp.error || 'Error';
     return;
   }
 
+  const rec = resp.data;
   const user = {
-    legajo, dni, nombre, apellido,
-    carrera: match.carrera, anio: match.anio,
-    estado: match.estado || 'INACTIVO'
+    legajo, dni,
+    nombre: rec.nombre || nombre,
+    apellido: rec.apellido || apellido,
+    carrera: rec.carrera || '',
+    anio: rec.anio || '',
+    estado: rec.estado || 'PENDIENTE'
   };
+
   saveState(user);
   msg.textContent = '';
   showCredential(user);
 });
+
 
 logoutBtn.addEventListener('click', () => {
   clearState();
