@@ -37,18 +37,43 @@ instSub.textContent = CONFIG.subtitulo;
 /* =======================
    JSONP helper (sin CORS)
 ======================= */
-function jsonp(url) {
+function jsonp(url, { timeoutMs = 12000 } = {}) {
   return new Promise((resolve, reject) => {
     const cb = 'cb_' + Math.random().toString(36).slice(2);
     const s = document.createElement('script');
-    window[cb] = (data) => { try { resolve(data); } finally { delete window[cb]; s.remove(); } };
-    // cache-buster para evitar respuestas cacheadas en móvil/PWA
+
+    let done = false;
+    const cleanup = () => {
+      if (done) return;
+      done = true;
+      delete window[cb];
+      if (s && s.parentNode) s.parentNode.removeChild(s);
+    };
+
+    window[cb] = (data) => { cleanup(); resolve(data); };
+
     const sep = url.includes('?') ? '&' : '?';
+    // cache-buster + callback
     s.src = `${url}${sep}callback=${cb}&t=${Date.now()}`;
-    s.onerror = () => { delete window[cb]; s.remove(); reject(new Error('JSONP error')); };
+    s.async = true;
+    // ayuda en algunos navegadores cuando redirige a Drive (PDF)
+    s.referrerPolicy = 'no-referrer';
+
+    s.onerror = () => { cleanup(); reject(new Error('JSONP error')); };
+
+    // Timeout defensivo para Edge
+    const to = setTimeout(() => {
+      if (!done) { cleanup(); reject(new Error('JSONP timeout')); }
+    }, timeoutMs);
+
+    // por si el callback llega después del timeout, cancelamos el timeout con éxito
+    const _origCb = window[cb];
+    window[cb] = (data) => { clearTimeout(to); _origCb(data); };
+
     document.body.appendChild(s);
   });
 }
+
 
 /* =======================
    API (Apps Script)
@@ -66,9 +91,26 @@ function apiRegister(data) {
 
 function apiCert(tipo, legajo, dni) {
   const url = `${CONFIG.padronUrl}?fn=cert&tipo=${encodeURIComponent(tipo)}&legajo=${encodeURIComponent(legajo)}&dni=${encodeURIComponent(dni)}`;
-  // abrir en nueva pestaña en respuesta a click evita bloqueos de popup en móvil
-  window.open(url, '_blank');
+
+  // Intento 1: abrir nueva pestaña (en respuesta a click)
+  const win = window.open(url, '_blank', 'noopener,noreferrer');
+
+  // Edge a veces bloquea. Si falló, hacemos fallback con <a> + click programático
+  if (!win || win.closed || typeof win.closed === 'undefined') {
+    const a = document.createElement('a');
+    a.href = url;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    // Edge suele permitir el click programático si se origina tras el gesto de usuario
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    // Último recurso: misma pestaña (solo si *realmente* todo lo demás fue bloqueado)
+    // setTimeout(() => { location.href = url; }, 300);
+  }
 }
+
 
 /* =======================
    Estado local
