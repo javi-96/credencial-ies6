@@ -1,13 +1,14 @@
-// App simple de credencial (PWA) sin backend
+// App simple de credencial (PWA) con backend vía Apps Script
 // - Registro con legajo, dni, nombre, apellido
-// - Lookup local de carrera/año desde assets/students.json
-// - Estado Activo/Inactivo provisto en el padrón local (editable)
+// - Lookup/registro contra API (Apps Script)
+// - Estado Activo/Inactivo provisto por la institución
 // - Persistencia local con localStorage
-// - Exportación a PDF (usando print to PDF)
+// - Exportación a PDF de la pantalla (print to PDF)
+// - Botones para pedir certificados a la API
 
 const STATE_KEY = 'cred:user';
 
-const $ = (s)=>document.querySelector(s);
+const $ = (s) => document.querySelector(s);
 const authSection = $('#authSection');
 const credSection = $('#credSection');
 const form = $('#registerForm');
@@ -32,36 +33,40 @@ const instSub = $('#instSub');
 const CONFIG = {
   institucion: 'IES N°6 - Perico (Oficial)',
   subtitulo: 'Credencial Digital',
-  padronUrl: 'https://script.google.com/macros/s/AKfycbxiyr6_gL-GQbJFUgRKSdqT2BDPh3RUX0kXfWdzrQ9v8VdROMG1zWCI-GqGm8sxbcNj/exec' // <-- URL de tu Web App de Apps Script
+  // URL de tu Web App de Apps Script (Deploy → Web App → Anyone)
+  padronUrl: 'https://script.google.com/macros/s/AKfycbxiyr6_gL-GQbJFUgRKSdqT2BDPh3RUX0kXfWdzrQ9v8VdROMG1zWCI-GqGm8sxbcNj/exec'
 };
 
 instName.textContent = CONFIG.institucion;
 instSub.textContent = CONFIG.subtitulo;
 
-async function loadPadron() {
-  async function apiLookup(legajo, dni) {
+/* =======================
+   API (Apps Script)
+======================= */
+async function apiLookup(legajo, dni) {
   const url = `${CONFIG.padronUrl}?fn=lookup&legajo=${encodeURIComponent(legajo)}&dni=${encodeURIComponent(dni)}`;
-  const r = await fetch(url, { cache:'no-store' });
+  const r = await fetch(url, { cache: 'no-store' });
   return r.json();
 }
 
 async function apiRegister(data) {
   const r = await fetch(CONFIG.padronUrl, {
     method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ fn:'register', ...data })
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fn: 'register', ...data })
   });
   return r.json();
 }
 
-async function apiCert(tipo, legajo, dni) {
-  // Abre en nueva pestaña (el script devuelve link al PDF)
-  const url = `${CONFIG.padronUrl}?fn=cert&tipo=${tipo}&legajo=${encodeURIComponent(legajo)}&dni=${encodeURIComponent(dni)}`;
+function apiCert(tipo, legajo, dni) {
+  // Abre en una pestaña nueva; el backend devuelve un link al PDF
+  const url = `${CONFIG.padronUrl}?fn=cert&tipo=${encodeURIComponent(tipo)}&legajo=${encodeURIComponent(legajo)}&dni=${encodeURIComponent(dni)}`;
   window.open(url, '_blank');
 }
 
-}
-
+/* =======================
+   Estado local
+======================= */
 function saveState(user) {
   localStorage.setItem(STATE_KEY, JSON.stringify(user));
 }
@@ -70,8 +75,13 @@ function getState() {
   if (!raw) return null;
   try { return JSON.parse(raw); } catch { return null; }
 }
-function clearState() { localStorage.removeItem(STATE_KEY); }
+function clearState() {
+  localStorage.removeItem(STATE_KEY);
+}
 
+/* =======================
+   UI
+======================= */
 function showCredential(user) {
   authSection.classList.add('hidden');
   credSection.classList.remove('hidden');
@@ -88,7 +98,7 @@ function showCredential(user) {
   cEstado.textContent = user.estado ?? '—';
   cEstado.classList.remove('ok', 'no');
   if (user.estado === 'ACTIVO') cEstado.classList.add('ok');
-  else if (user.estado === 'INACTIVO') cEstado.classList.add('no');
+  else if (user.estado === 'INACTIVO' || user.estado === 'PENDIENTE') cEstado.classList.add('no');
 }
 
 function showAuth() {
@@ -96,32 +106,41 @@ function showAuth() {
   authSection.classList.remove('hidden');
 }
 
+/* =======================
+   Eventos
+======================= */
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
   msg.textContent = 'Consultando...';
 
   const data = Object.fromEntries(new FormData(form).entries());
-  const legajo = data.legajo.trim();
-  const dni = data.dni.trim();
-  const nombre = data.nombre.trim();
-  const apellido = data.apellido.trim();
+  const legajo = (data.legajo || '').trim();
+  const dni = (data.dni || '').trim();
+  const nombre = (data.nombre || '').trim();
+  const apellido = (data.apellido || '').trim();
 
-  // 1) Intentar encontrar en padrón (lookup)
+  if (!legajo || !dni || !nombre || !apellido) {
+    msg.textContent = 'Completá todos los campos.';
+    return;
+  }
+
+  // 1) Buscar en padrón
   let resp = await apiLookup(legajo, dni);
 
+  // 2) Si no existe, registrar solicitud (queda PENDIENTE)
   if (!resp.ok) {
-    // 2) Si no está, registrar solicitud
     resp = await apiRegister({ legajo, dni, nombre, apellido });
   }
 
   if (!resp.ok) {
-    msg.textContent = resp.error || 'Error';
+    msg.textContent = resp.error || 'Error consultando la API';
     return;
   }
 
-  const rec = resp.data;
+  const rec = resp.data || {};
   const user = {
-    legajo, dni,
+    legajo,
+    dni,
     nombre: rec.nombre || nombre,
     apellido: rec.apellido || apellido,
     carrera: rec.carrera || '',
@@ -134,24 +153,23 @@ form.addEventListener('submit', async (e) => {
   showCredential(user);
 });
 
-
 logoutBtn.addEventListener('click', () => {
   clearState();
   showAuth();
 });
 
 downloadBtn.addEventListener('click', () => {
-  // Usamos print-to-PDF nativo del navegador para generar un PDF simple de la tarjeta
+  // Usamos print-to-PDF del navegador para la credencial en pantalla
   window.print();
 });
 
-btnIns.addEventListener('click', () => {
+btnIns?.addEventListener('click', () => {
   const user = getState();
   if (!user) return;
   apiCert('inscripcion', user.legajo, user.dni);
 });
 
-btnReg.addEventListener('click', () => {
+btnReg?.addEventListener('click', () => {
   const user = getState();
   if (!user) return;
   if (user.estado !== 'ACTIVO') {
@@ -161,7 +179,8 @@ btnReg.addEventListener('click', () => {
   apiCert('regular', user.legajo, user.dni);
 });
 
-// Session restore
+/* =======================
+   Session restore
+======================= */
 const stored = getState();
-if (stored) { showCredential(stored); }
-
+if (stored) showCredential(stored);
