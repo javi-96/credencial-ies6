@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Credencial Estudiantil</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0ea5e9">
+  <link rel="icon" href="img/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="img/icon-192.png">
+  <link rel="stylesheet" href="styles.css">
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(console.error);
+      });
+    }
+  </script>
+</head>
+<body>
+  <header class="appbar"><img src="img/logo.png" alt="Logo" class="logo">
+    <h1>Credencial Estudiantil</h1>
+  </header>
+
+  <main class="container">
+    <section id="authSection" class="card">
+      <h2>Registro / Acceso</h2>
+      <p class="muted">Creá tu usuario con <b>Legajo</b>, <b>DNI</b>, <b>Nombre</b> y <b>Apellido</b>. La app traerá automáticamente <i>Carrera</i> y <i>Año</i> si existís en el padrón.</p>
+      <form id="registerForm">
+        <div class="row">
+          <label for="legajo">Legajo</label>
+          <input id="legajo" name="legajo" type="text" required placeholder="Ej: 2025-00123" />
+        </div>
+        <div class="row">
+          <label for="dni">DNI</label>
+          <input id="dni" name="dni" type="text" required placeholder="Sin puntos" />
+        </div>
+        <div class="row">
+          <label for="nombre">Nombre</label>
+          <input id="nombre" name="nombre" type="text" required />
+        </div>
+        <div class="row">
+          <label for="apellido">Apellido</label>
+          <input id="apellido" name="apellido" type="text" required />
+        </div>
+        <button type="submit" class="btn">Crear / Acceder</button>
+      </form>
+      <p id="authMsg" class="msg"></p>
+    </section>
+
+    <section id="credSection" class="card hidden">
+      <div class="cred-header">
+        <div>
+          <h2 id="instName">Institución</h2>
+          <p id="instSub" class="muted">Credencial Digital</p>
+        </div>
+        <div>
+          <button id="logoutBtn" class="btn-outline">Salir</button>
+        </div>
+      </div>
+      <div class="cred-body">
+        <div class="avatar">
+          <span id="avatarText">A</span>
+        </div>
+        <div class="grid">
+          <div><span class="label">Nombre</span><div id="cNombre" class="value">—</div></div>
+          <div><span class="label">Apellido</span><div id="cApellido" class="value">—</div></div>
+          <div><span class="label">DNI</span><div id="cDni" class="value">—</div></div>
+          <div><span class="label">Legajo</span><div id="cLegajo" class="value">—</div></div>
+          <div><span class="label">Carrera</span><div id="cCarrera" class="value">—</div></div>
+          <div><span class="label">Año</span><div id="cAnio" class="value">—</div></div>
+        </div>
+        <div class="status-row">
+          <span class="label">Estado</span>
+          <span id="cEstado" class="chip">—</span>
+        </div>
+        <div class="muted small">* Esta credencial es informativa. La institución gestiona el estado “Activo / Inactivo”.</div>
+      </div>
+      <div class="cred-actions">
+        <button id="downloadBtn" class="btn">Descargar PDF</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h3>Ayuda</h3>
+      <ul>
+        <li>Instalá la app: “Agregar a la pantalla de inicio”.</li>
+        <li>Para actualizar datos, pedí en Secretaría que modifiquen tu estado en el padrón.</li>
+        <li>La credencial solo muestra <b>Activo / Inactivo</b>. No requiere verificación por parte del comercio.</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span>© 2025 Institución Educativa</span>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

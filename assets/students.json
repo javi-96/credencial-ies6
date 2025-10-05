@@ -1,0 +1,29 @@
+[
+  {
+    "legajo": "2025-0001",
+    "dni": "40111222",
+    "nombre": "Ana",
+    "apellido": "Paredes",
+    "carrera": "Profesorado en Informática",
+    "anio": 3,
+    "estado": "ACTIVO"
+  },
+  {
+    "legajo": "2025-0002",
+    "dni": "39222333",
+    "nombre": "Bruno",
+    "apellido": "Quispe",
+    "carrera": "Profesorado en Informática",
+    "anio": 2,
+    "estado": "INACTIVO"
+  },
+  {
+    "legajo": "2025-0003",
+    "dni": "38444555",
+    "nombre": "Carla",
+    "apellido": "López",
+    "carrera": "Tecnicatura en Desarrollo de Videojuegos",
+    "anio": 1,
+    "estado": "ACTIVO"
+  }
+]

@@ -1,0 +1,84 @@
+
+:root {
+  --bg: #0b1220;
+  --surface: #111827;
+  --card: #0f172a;
+  --muted: #94a3b8;
+  --text: #e5e7eb;
+  --primary: #0ea5e9;
+  --success: #10b981;
+  --danger: #ef4444;
+  --border: #1f2937;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, 'Helvetica Neue', Arial, 'Apple Color Emoji', 'Segoe UI Emoji';
+  background: linear-gradient(180deg, #0b1220 0%, #0b1220 40%, #020617 100%);
+  color: var(--text);
+}
+.appbar { padding: 16px; background: rgba(2,6,23,0.6); backdrop-filter: blur(6px); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10; }
+.appbar h1 { margin: 0; font-size: 20px; }
+.container { max-width: 760px; margin: 0 auto; padding: 16px; }
+.card {
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+}
+h2 { margin-top: 0; }
+.row { display: grid; gap: 6px; margin-bottom: 12px; }
+label { color: var(--muted); font-size: 14px; }
+input {
+  padding: 12px; border-radius: 10px; border: 1px solid var(--border);
+  background: #0b1220; color: var(--text);
+}
+.btn, .btn-outline {
+  padding: 10px 14px; border-radius: 12px; border: 1px solid var(--primary);
+  background: var(--primary); color: #001018; font-weight: 600; cursor: pointer;
+}
+.btn:hover { filter: brightness(1.1); }
+.btn-outline { background: transparent; color: var(--text); }
+.muted { color: var(--muted); }
+.small { font-size: 12px; }
+.hidden { display: none; }
+
+.cred-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.cred-body { display: grid; gap: 16px; }
+.avatar {
+  width: 84px; height: 84px; border-radius: 9999px; background: #071221; display: grid; place-content: center;
+  border: 1px solid var(--border); font-weight: 800; font-size: 28px;
+}
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; }
+.label { color: var(--muted); font-size: 13px; }
+.value { font-size: 16px; font-weight: 600; }
+.status-row { display: flex; align-items: center; gap: 12px; }
+.chip {
+  padding: 8px 10px; border-radius: 9999px; font-weight: 800;
+  border: 1px solid var(--border); background: #0b1220;
+}
+.chip.ok { border-color: rgba(16,185,129,0.5); color: #a7f3d0; }
+.chip.no { border-color: rgba(239,68,68,0.5); color: #fecaca; }
+.cred-actions { display: flex; justify-content: end; }
+
+.footer { padding: 24px; text-align: center; color: var(--muted); }
+.msg { margin-top: 8px; }
+
+/* Branding IES N°6 (ajustable) */
+:root {
+  --brand: #134e9b; /* azul institucional estimado */
+  --brand-contrast: #e6f0ff;
+}
+.appbar { display:flex; align-items:center; gap:12px; }
+.logo { width: 36px; height: 36px; border-radius: 6px; border:1px solid var(--border); background:#0b1220; }
+
+/* Print to PDF: optimiza la tarjeta */
+@media print {
+  body { background: #ffffff; color: #000000; }
+  .appbar, .footer, #authSection, .cred-actions + .card, .card + .card { display: none !important; }
+  .container { max-width: 680px; }
+  .card { border: 1px solid #ddd; box-shadow: none; }
+  .chip.ok { color: #0a7a52; border-color: #0a7a52; }
+  .chip.no { color: #b91c1c; border-color: #b91c1c; }
+}
