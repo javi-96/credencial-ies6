@@ -40,10 +40,10 @@ instSub.textContent = CONFIG.subtitulo;
 function jsonp(url) {
   return new Promise((resolve, reject) => {
     const cb = 'cb_' + Math.random().toString(36).slice(2);
+    window[cb] = (data) => { delete window[cb]; s.remove(); resolve(data); };
     const s = document.createElement('script');
-    window[cb] = (data) => { resolve(data); delete window[cb]; s.remove(); };
-    s.onerror = () => { delete window[cb]; s.remove(); reject(new Error('JSONP error')); };
     s.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + cb;
+    s.onerror = () => { delete window[cb]; s.remove(); reject(new Error('JSONP error')); };
     document.body.appendChild(s);
   });
 }
@@ -56,9 +56,9 @@ function apiLookup(legajo, dni) {
   return jsonp(url);
 }
 
-function apiRegister(data) {
-  const qs = new URLSearchParams({ fn: 'register', ...data }).toString();
-  const url = `${CONFIG.padronUrl}?${qs}`;
+async function apiRegister(data) {
+  const q = new URLSearchParams({ fn:'register', ...data }).toString();
+  const url = `${CONFIG.padronUrl}?${q}`;
   return jsonp(url);
 }
 
