@@ -14,6 +14,8 @@ const form = $('#registerForm');
 const msg = $('#authMsg');
 const logoutBtn = $('#logoutBtn');
 const downloadBtn = $('#downloadBtn');
+const btnIns = document.getElementById('btnInscripcion');
+const btnReg = document.getElementById('btnRegular');
 
 const cNombre = $('#cNombre');
 const cApellido = $('#cApellido');
@@ -141,6 +143,22 @@ logoutBtn.addEventListener('click', () => {
 downloadBtn.addEventListener('click', () => {
   // Usamos print-to-PDF nativo del navegador para generar un PDF simple de la tarjeta
   window.print();
+});
+
+btnIns.addEventListener('click', () => {
+  const user = getState();
+  if (!user) return;
+  apiCert('inscripcion', user.legajo, user.dni);
+});
+
+btnReg.addEventListener('click', () => {
+  const user = getState();
+  if (!user) return;
+  if (user.estado !== 'ACTIVO') {
+    alert('Para este certificado tu estado debe ser ACTIVO.');
+    return;
+  }
+  apiCert('regular', user.legajo, user.dni);
 });
 
 // Session restore
