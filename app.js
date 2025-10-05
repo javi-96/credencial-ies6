@@ -28,7 +28,7 @@ const CONFIG = {
   institucion: 'IES N°6 - Perico (Oficial)',
   subtitulo: 'Credencial Digital',
   // Reemplazá por TU URL /exec del deployment de Apps Script
-  padronUrl: 'https://script.google.com/macros/s/AKfycbxiyr6_gL-GQbJFUgRKSdqT2BDPh3RUX0kXfWdzrQ9v8VdROMG1zWCI-GqGm8sxbcNj/exec'
+  padronUrl: 'https://script.google.com/macros/s/AKfycbxr63lha4Vjbm3FgQuJumodUSU3uOwqQX3yuqJZIoMd70rG1_Jdw8maexBIDyKlqOW4/exec'
 };
 
 instName.textContent = CONFIG.institucion;
