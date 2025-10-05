@@ -29,7 +29,7 @@
       <form id="registerForm">
         <div class="row">
           <label for="legajo">Legajo</label>
-          <input id="legajo" name="legajo" type="text" required placeholder="Ej: 2025-00123" />
+          <input id="legajo" name="legajo" type="text" required placeholder="Ej: xx/xxxx-xx" />
         </div>
         <div class="row">
           <label for="dni">DNI</label>
@@ -77,8 +77,11 @@
         <div class="muted small">* Esta credencial es informativa. La institución gestiona el estado “Activo / Inactivo”.</div>
       </div>
       <div class="cred-actions">
-        <button id="downloadBtn" class="btn">Descargar PDF</button>
-      </div>
+  <button id="downloadBtn" class="btn">Descargar PDF (pantalla)</button>
+  <button id="btnInscripcion" class="btn-outline">Constancia de Inscripción</button>
+  <button id="btnRegular" class="btn-outline">Certificado de Alumno Regular</button>
+</div>
+
     </section>
 
     <section class="card">
